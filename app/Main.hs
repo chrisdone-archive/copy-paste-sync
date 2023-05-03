@@ -38,7 +38,6 @@ main = do
 
 app :: String -> IORef ByteString -> Application
 app os current request respond = do
-    S8.putStrLn "Received new clipboard."
     payload <- strictRequestBody request
     S8.putStr "Received new clipboard, setting ..."
     writeIORef current payload
