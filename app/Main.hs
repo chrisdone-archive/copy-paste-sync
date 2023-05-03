@@ -20,29 +20,28 @@ import Control.Concurrent
 import Network.HTTP.Conduit as Http
 import qualified Data.ByteString.Char8 as S8
 import System.IO
-import System.Info
 import System.Timeout
 
 main :: IO ()
 main = do
     hSetBuffering stdout NoBuffering
-    localPort:remoteUri:_ <- getArgs
+    os:localPort:remoteUri:_ <- getArgs
     request <- parseUrlThrow remoteUri
     putStrLn $ "Listening on port " ++ localPort
     putStrLn $ "Sending events to " ++ remoteUri
     concurrently_
-      (sender request)
-      (run (read localPort) app)
+      (sender os request)
+      (run (read localPort) (app os))
 
-app :: Application
-app request respond = do
+app :: String -> Application
+app os request respond = do
     S8.putStrLn "Received new clipboard."
     payload <- strictRequestBody request
     S8.putStr "Received new clipboard, setting ..."
     runProcess_ $ setStdin (byteStringInput payload) $
       case os of
         "linux" -> proc "xclip" ["-selection","clipboard"]
-        "darwin" -> proc "pbcopy" []
+        "macos" -> proc "pbcopy" []
         _ -> error "unsupported OS."
     S8.putStrLn "done."
     respond $ responseLBS
@@ -50,14 +49,14 @@ app request respond = do
         [("Content-Type", "text/plain")]
         "Thanks."
 
-sender :: Http.Request -> IO ()
-sender request = go "" where
+sender :: String -> Http.Request -> IO ()
+sender os request = go "" where
  go previous = do
   threadDelay $ 1000 * 1000
   payload <- readProcessStdout_ $
     case os of
         "linux" -> proc "xclip" ["-selection","clipboard","-o","/dev/stdout"]
-        "darwin" -> proc "pbpaste" []
+        "macos" -> proc "pbpaste" []
         _ -> error "unsupported OS."
   when (payload /= previous) $ void $ tryAny $ do
     let request' =
