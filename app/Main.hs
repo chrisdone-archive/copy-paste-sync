@@ -21,6 +21,8 @@ import Network.HTTP.Conduit as Http
 import qualified Data.ByteString.Char8 as S8
 import System.IO
 import System.Timeout
+import Data.IORef
+import Data.ByteString.Lazy (ByteString)
 
 main :: IO ()
 main = do
@@ -29,15 +31,17 @@ main = do
     request <- parseUrlThrow remoteUri
     putStrLn $ "Listening on port " ++ localPort
     putStrLn $ "Sending events to " ++ remoteUri
+    current <- newIORef mempty
     concurrently_
-      (sender os request)
-      (run (read localPort) (app os))
+      (sender os current request)
+      (run (read localPort) (app os current))
 
-app :: String -> Application
-app os request respond = do
+app :: String -> IORef ByteString -> Application
+app os current request respond = do
     S8.putStrLn "Received new clipboard."
     payload <- strictRequestBody request
     S8.putStr "Received new clipboard, setting ..."
+    writeIORef current payload
     runProcess_ $ setStdin (byteStringInput payload) $
       case os of
         "linux" -> proc "xclip" ["-selection","clipboard"]
@@ -49,16 +53,17 @@ app os request respond = do
         [("Content-Type", "text/plain")]
         "Thanks."
 
-sender :: String -> Http.Request -> IO ()
-sender os request = go "" where
- go previous = do
+sender :: String -> IORef ByteString -> Http.Request -> IO ()
+sender os current request = forever $ do
   threadDelay $ 1000 * 1000
+  previous <- readIORef current
   payload <- readProcessStdout_ $
     case os of
         "linux" -> proc "xclip" ["-selection","clipboard","-o","/dev/stdout"]
         "macos" -> proc "pbpaste" []
         _ -> error "unsupported OS."
   when (payload /= previous) $ void $ tryAny $ do
+    writeIORef current payload
     let request' =
           request { method = "PUT", Http.requestBody = RequestBodyLBS "<payload>" }
     S8.putStr "Pushing new clipboard ..."
@@ -67,4 +72,3 @@ sender os request = go "" where
     case mresult of
       Nothing -> S8.putStrLn " timed out."
       Just{} -> S8.putStrLn "done."
-  go payload
