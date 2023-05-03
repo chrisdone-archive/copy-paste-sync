@@ -39,8 +39,9 @@ main = do
 app :: String -> IORef ByteString -> Application
 app os current request respond = do
     payload <- strictRequestBody request
-    S8.putStr "Received new clipboard, setting ..."
+    S8.putStr "Received new clipboard, setting ... "
     writeIORef current payload
+    S8.putStr $ S8.pack $ show payload
     runProcess_ $ setStdin (byteStringInput payload) $
       case os of
         "linux" -> proc "xclip" ["-selection","clipboard"]
@@ -65,9 +66,9 @@ sender os current request = forever $ do
     writeIORef current payload
     let request' =
           request { method = "PUT", Http.requestBody = RequestBodyLBS "<payload>" }
-    S8.putStr "Pushing new clipboard ..."
+    S8.putStr "Pushing new clipboard ... "
     manager <- newManager $ tlsManagerSettings { managerResponseTimeout = responseTimeoutMicro (1000 * 1000) }
     mresult <- timeout (1000 * 1000) $ httpLbs request' manager
     case mresult of
-      Nothing -> S8.putStrLn " timed out."
+      Nothing -> S8.putStrLn "timed out."
       Just{} -> S8.putStrLn "done."
