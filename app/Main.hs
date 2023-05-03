@@ -1,6 +1,6 @@
 -- | Run as:
 --
--- $ copy-paste-sync 3232 http://192.168.8.1:3000
+-- $ copy-paste-sync linux 3232 http://192.168.8.1:3000
 -- Listening on port 3232
 -- Sending clipboard pushes to http://192.168.8.1:3000
 --
