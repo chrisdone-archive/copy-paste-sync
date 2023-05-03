@@ -20,6 +20,8 @@ import Control.Concurrent
 import Network.HTTP.Conduit as Http
 import qualified Data.ByteString.Char8 as S8
 import System.IO
+import System.Info
+import System.Timeout
 
 main :: IO ()
 main = do
@@ -37,7 +39,11 @@ app request respond = do
     S8.putStrLn "Received new clipboard."
     payload <- strictRequestBody request
     S8.putStr "Received new clipboard, setting ..."
-    runProcess_ $ setStdin (byteStringInput payload) $ proc "xclip" ["-selection","clipboard"]
+    runProcess_ $ setStdin (byteStringInput payload) $
+      case os of
+        "linux" -> proc "xclip" ["-selection","clipboard"]
+        "darwin" -> proc "pbcopy" []
+        _ -> error "unsupported OS."
     S8.putStrLn "done."
     respond $ responseLBS
         status200
@@ -47,16 +53,19 @@ app request respond = do
 sender :: Http.Request -> IO ()
 sender request = go "" where
  go previous = do
-  threadDelay $ 1000 * 1000 * 1
-  payload <- readProcessStdout_ $ proc "xclip" ["-selection","clipboard","-o","/dev/stdout"]
+  threadDelay $ 1000 * 1000
+  payload <- readProcessStdout_ $
+    case os of
+        "linux" -> proc "xclip" ["-selection","clipboard","-o","/dev/stdout"]
+        "darwin" -> proc "pbpaste" []
+        _ -> error "unsupported OS."
   when (payload /= previous) $ void $ tryAny $ do
     let request' =
           request { method = "PUT", Http.requestBody = RequestBodyLBS "<payload>" }
     S8.putStr "Pushing new clipboard ..."
-    manager <- newManager tlsManagerSettings
-    _ <- httpLbs request' manager
-    S8.putStrLn "done."
-
-{-
-while true; do; socat -u TCP-LISTEN:8002,keepalive,reuseaddr,rcvbuf=131071 STDOUT; done
--}
+    manager <- newManager $ tlsManagerSettings { managerResponseTimeout = responseTimeoutMicro (1000 * 1000) }
+    mresult <- timeout (1000 * 1000) $ httpLbs request' manager
+    case mresult of
+      Nothing -> S8.putStrLn " timed out."
+      Just{} -> S8.putStrLn "done."
+  go payload
