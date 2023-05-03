@@ -41,7 +41,7 @@ app os current request respond = do
     payload <- strictRequestBody request
     S8.putStr "Received new clipboard, setting ... "
     writeIORef current payload
-    S8.putStr $ S8.pack $ show payload
+    -- S8.putStr $ S8.pack $ show payload
     runProcess_ $ setStdin (byteStringInput payload) $
       case os of
         "linux" -> proc "xclip" ["-selection","clipboard"]
@@ -65,7 +65,7 @@ sender os current request = forever $ do
   when (payload /= previous) $ void $ tryAny $ do
     writeIORef current payload
     let request' =
-          request { method = "PUT", Http.requestBody = RequestBodyLBS "<payload>" }
+          request { method = "PUT", Http.requestBody = RequestBodyLBS payload }
     S8.putStr "Pushing new clipboard ... "
     manager <- newManager $ tlsManagerSettings { managerResponseTimeout = responseTimeoutMicro (1000 * 1000) }
     mresult <- timeout (1000 * 1000) $ httpLbs request' manager
