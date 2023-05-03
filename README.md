@@ -13,8 +13,6 @@ $ stack run -- macos 1234 http://192.168.8.1:1234/
 
 Run on Linux:
 
-Run on macOS:
-
 ```
 $ stack run -- linux 1234 http://192.168.8.2:1234/
 ```
