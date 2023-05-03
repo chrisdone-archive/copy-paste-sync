@@ -55,7 +55,7 @@ app os current request respond = do
 
 sender :: String -> IORef ByteString -> Http.Request -> IO ()
 sender os current request = forever $ do
-  threadDelay $ 1000 * 1000
+  threadDelay $ 1000 * 500
   previous <- readIORef current
   payload <- readProcessStdout_ $
     case os of
