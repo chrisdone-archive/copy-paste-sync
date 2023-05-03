@@ -17,33 +17,10 @@ license-file:   LICENSE
 build-type:     Simple
 extra-source-files:
     README.md
-    CHANGELOG.md
 
 source-repository head
   type: git
   location: https://github.com/githubuser/copy-paste-sync
-
-library
-  exposed-modules:
-      Lib
-  other-modules:
-      Paths_copy_paste_sync
-  hs-source-dirs:
-      src
-  default-extensions:
-      TypeApplications
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints
-  build-depends:
-      async
-    , base >=4.7 && <5
-    , bytestring
-    , http-conduit
-    , http-types
-    , safe-exceptions
-    , typed-process
-    , wai
-    , warp
-  default-language: Haskell2010
 
 executable copy-paste-sync-exe
   main-is: Main.hs
@@ -58,30 +35,6 @@ executable copy-paste-sync-exe
       async
     , base >=4.7 && <5
     , bytestring
-    , copy-paste-sync
-    , http-conduit
-    , http-types
-    , safe-exceptions
-    , typed-process
-    , wai
-    , warp
-  default-language: Haskell2010
-
-test-suite copy-paste-sync-test
-  type: exitcode-stdio-1.0
-  main-is: Spec.hs
-  other-modules:
-      Paths_copy_paste_sync
-  hs-source-dirs:
-      test
-  default-extensions:
-      TypeApplications
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -threaded -rtsopts -with-rtsopts=-N
-  build-depends:
-      async
-    , base >=4.7 && <5
-    , bytestring
-    , copy-paste-sync
     , http-conduit
     , http-types
     , safe-exceptions

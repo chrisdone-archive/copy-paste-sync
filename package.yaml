@@ -8,7 +8,6 @@ copyright:           "2023 Author name here"
 
 extra-source-files:
 - README.md
-- CHANGELOG.md
 
 # Metadata used when publishing your package
 # synopsis:            Short description of your package
@@ -44,9 +43,6 @@ ghc-options:
 default-extensions:
 - TypeApplications
 
-library:
-  source-dirs: src
-
 executables:
   copy-paste-sync-exe:
     main:                Main.hs
@@ -55,16 +51,3 @@ executables:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
-    dependencies:
-    - copy-paste-sync
-
-tests:
-  copy-paste-sync-test:
-    main:                Spec.hs
-    source-dirs:         test
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-    - copy-paste-sync
