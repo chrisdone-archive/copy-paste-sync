@@ -1,6 +1,6 @@
 # copy-paste-sync
 
-An easy way to share clipboard (not encrypted) on a trusted LAN.
+An easy way to share clipboard (encrypted by Blowfish) on a LAN.
 
 For two machines, 192.168.8.1 (macOS) and 192.168.8.2 (Linux), run the
 following:
@@ -8,14 +8,11 @@ following:
 Run on macOS:
 
 ```
-$ stack run -- macos 1234 http://192.168.8.1:1234/
+$ stack run -- macos 3232 http://192.168.8.1:3232 $HOME/copy-paste-sync.pass
 ```
 
 Run on Linux:
 
 ```
-$ stack run -- linux 1234 http://192.168.8.2:1234/
+$ stack run -- linux 3232 http://192.168.8.2:3232 $HOME/copy-paste-sync.pass
 ```
-
-You can make it secure via an SSH tunnel if you're not on a trusted
-LAN.
