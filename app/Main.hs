@@ -1,6 +1,6 @@
 -- | Run as:
 --
--- $ copy-paste-sync linux 3232 http://192.168.8.1:3000
+-- $ copy-paste-sync linux 3232 http://192.168.8.1:3000 $HOME/copy-paste-sync.pass
 -- Listening on port 3232
 -- Sending clipboard pushes to http://192.168.8.1:3000
 --
@@ -27,18 +27,20 @@ import Data.ByteString.Lazy (ByteString)
 main :: IO ()
 main = do
     hSetBuffering stdout NoBuffering
-    os:localPort:remoteUri:_ <- getArgs
+    os:localPort:remoteUri:key:_ <- getArgs
     request <- parseUrlThrow remoteUri
     putStrLn $ "Listening on port " ++ localPort
     putStrLn $ "Sending events to " ++ remoteUri
     current <- newIORef mempty
     concurrently_
-      (sender os current request)
-      (run (read localPort) (app os current))
+      (sender key os current request)
+      (run (read localPort) (app key os current))
 
-app :: String -> IORef ByteString -> Application
-app os current request respond = do
-    payload <- strictRequestBody request
+app :: FilePath -> String -> IORef ByteString -> Application
+app key os current request respond = do
+    encrypted <- strictRequestBody request
+    payload <- readProcessStdout_ $ setStdin (byteStringInput encrypted) $ proc "openssl" ["enc","-base64","-d","-bf-cbc","-in","/dev/stdin","-out","/dev/stdout","-kfile",key]
+
     S8.putStr "Received new clipboard, setting ... "
     writeIORef current payload
     -- S8.putStr $ S8.pack $ show payload
@@ -53,17 +55,20 @@ app os current request respond = do
         [("Content-Type", "text/plain")]
         "Thanks."
 
-sender :: String -> IORef ByteString -> Http.Request -> IO ()
-sender os current request = forever $ do
+sender :: FilePath -> String -> IORef ByteString -> Http.Request -> IO ()
+sender key os current request = forever $ do
   threadDelay $ 1000 * 500
   previous <- readIORef current
-  payload <- readProcessStdout_ $
+  payload0 <- readProcessStdout_ $
     case os of
         "linux" -> proc "xclip" ["-selection","clipboard","-o","/dev/stdout"]
         "macos" -> proc "pbpaste" []
         _ -> error "unsupported OS."
-  when (payload /= previous) $ void $ tryAny $ do
-    writeIORef current payload
+  when (payload0 /= previous) $ void $ tryAny $ do
+    writeIORef current payload0
+
+    payload <- readProcessStdout_ $ setStdin (byteStringInput payload0) $ proc "openssl" ["enc","-base64","-e","-bf-cbc","-in","/dev/stdin","-out","/dev/stdout","-kfile",key]
+
     let request' =
           request { method = "PUT", Http.requestBody = RequestBodyLBS payload }
     S8.putStr "Pushing new clipboard ... "
