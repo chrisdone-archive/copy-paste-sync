@@ -2,6 +2,9 @@
 
 An easy way to share clipboard (encrypted by Blowfish) on a LAN.
 
+Make a `$HOME/.copy-paste-sync.pass` with a large randomly generated
+password in it on both machines.
+
 For two machines, 192.168.8.1 (macOS) and 192.168.8.2 (Linux), run the
 following:
 
